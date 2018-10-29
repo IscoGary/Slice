@@ -30,6 +30,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.ipa.cha.IClassHierarchy;
 import com.ibm.wala.ipa.modref.ModRef;
 import com.ibm.wala.ipa.slicer.NormalStatement;
+import com.ibm.wala.ipa.slicer.ParamCallee;
 import com.ibm.wala.ipa.slicer.SDG;
 import com.ibm.wala.ipa.slicer.Slicer;
 import com.ibm.wala.ipa.slicer.Slicer.ControlDependenceOptions;
@@ -51,14 +52,8 @@ import com.ibm.wala.util.intset.IntSet;
 import com.ibm.wala.util.io.FileProvider;
 import com.ibm.wala.util.strings.Atom;
 
-public class tt {
+public class test {
 	Collection<Statement> collection = null;
-
-	public static int returnNum(String in) {
-		if (in.equals("a"))
-			return 0;
-		return 1;
-	}
 
 	public static void print(CallGraph cg) {
 		int i = 1;
@@ -73,11 +68,48 @@ public class tt {
 
 	}
 
+	//打印特定方法在sdg中的statement
+	public static void printSDG(SDG<?> sdg, String name) {
+		int i = 0;
+		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
+			i = 0;
+			Statement state = it.next(); // 函数名和类名比较
+			if (state.getNode().getMethod().getName().toString().contains(name)) {
+				if (state.getKind() == Statement.Kind.NORMAL) { // ignore special kinds of statements
+					int bcIndex, instructionIndex = ((NormalStatement) state).getInstructionIndex();
+					try {
+						bcIndex = ((ShrikeBTMethod) state.getNode().getMethod()).getBytecodeIndex(instructionIndex);
+						try {
+							i = state.getNode().getMethod().getLineNumber(bcIndex);
+
+						} catch (Exception e) {
+							System.err.println("Bytecode index no good");
+							System.err.println(e.getMessage());
+						}
+					} catch (Exception e) {
+						System.err.println("it's probably not a BT method (e.g. it's a fakeroot method)");
+						i = 1;
+						System.err.println(e.getMessage());
+					}
+				}
+				System.out.println("statement:  " + state.toString());
+				if (state.getKind() == Statement.Kind.NORMAL)
+					System.out.println("----------" + i + ((NormalStatement) state).getInstruction().toString());
+				if (state.getKind() == Statement.Kind.PARAM_CALLEE)
+					System.out.println("----------" + i + ((ParamCallee) state).getValueNumber());
+				System.out.println();
+				// System.err.println(n);
+
+			}
+		}
+	}
+
 	public static void printSDG(SDG<?> sdg) {
 		int i = 0;
 		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
 			i = 0;
 			Statement state = it.next(); // 函数名和类名比较
+
 			if (state.getKind() == Statement.Kind.NORMAL) { // ignore special kinds of statements
 				int bcIndex, instructionIndex = ((NormalStatement) state).getInstructionIndex();
 				try {
@@ -95,12 +127,15 @@ public class tt {
 					System.err.println(e.getMessage());
 				}
 			}
-
-			System.out.println("statement:  " + state.toString() + "----------" + i);
+			System.out.println("statement:  " + state.toString());
+			if (state.getKind() == Statement.Kind.NORMAL)
+				System.out.println("----------" + i + ((NormalStatement) state).getInstruction().toString());
+			if (state.getKind() == Statement.Kind.PARAM_CALLEE)
+				System.out.println("----------" + i + ((ParamCallee) state).getValueNumber());
+			System.out.println();
 			// System.err.println(n);
 
 		}
-
 	}
 
 	// 我们需要知道，seed在哪个函数中，所以，我们要先在cg图里找到哪个节点是对应的函数，
@@ -147,39 +182,10 @@ public class tt {
 		return null;
 	}
 
-	public static Statement findStatement(SDG<?> sdg, String methodName) {
-		// 函数n的ir，中间表示（和llvm的ir很相似）。
-		// IR ir = n.getIR();
-		// System.out.println(ir.toString());
-		// 迭代ir中每一条指令，寻找seed
-		int i = 0;
-		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
-			i = 0;
-			Statement state = it.next(); // 函数名和类名比较
-			if (state.getKind() == Statement.Kind.NORMAL) { // ignore special kinds of statements
-				try {
-
-					state.getNode().getMethod();
-
-				} catch (Exception e) {
-					System.err.println("it's probably not a BT method (e.g. it's a fakeroot method)");
-					i = 1;
-					System.err.println(e.getMessage());
-				}
-			}
-
-			System.out.println("statement:  " + state.toString() + "----------" + i);
-			// System.err.println(n);
-
-		}
-
-		return null;
-	}
-
 	// 打印切片信息
 	public static void printState(Statement s) {
 		// 直接输出该statement
-		//System.err.println("cgnode:" + s);
+		// System.out.println("cgnode:" + s);
 		if (s.getKind() == Statement.Kind.NORMAL
 				&& !(s.getNode().getMethod().getName().equals(Atom.findOrCreateAsciiAtom("fakeRootMethod")))) {
 			CGNode node = s.getNode();
@@ -211,13 +217,7 @@ public class tt {
 				}
 			}
 		}
-		// 匹配的另一方法
-//		if (s.getKind() == Statement.Kind.NORMAL) {
-//		  int instructionIndex = ((NormalStatement) s).getInstructionIndex();
-//		  int lineNum = ((ConcreteJavaMethod) s.getNode().getMethod()).getLineNumber(instructionIndex);
-//		  System.out.println("Source line number = " + lineNum );
-//		}
-//
+		
 	}
 
 	// 通过调用图节点获取某个方法所在行
@@ -236,27 +236,55 @@ public class tt {
 		return sourceLineNum;
 	}
 
-	public static Iterable<Entrypoint> makeMainEntrypoints(AnalysisScope scope, IClassHierarchy cha) {
+	//通过cgnode信息找到目标statement，未实现通用方法
+	public static Statement getStatement(Statement state, String method, int value, String kind) {
+		if (state.getKind() == Statement.Kind.NORMAL && kind.equals("return")
+				&& state.getNode().getMethod().getName().toString().equals(method)) {
+			if (((NormalStatement) state).getInstruction().toString().contains("return 4")) {
+				return state;
+			}
+			;
+		}
+		if (state.getKind() == Statement.Kind.PARAM_CALLEE && kind.equals("call")) {
+			if (((ParamCallee) state).getValueNumber() == value
+					&& state.getNode().getMethod().getName().toString().equals(method)) {
+				return state;
+			}
+			;
+		}
+//		if (state.getKind() == Statement.Kind.NORMAL_RET_CALLEE&& kind.equals("retcall")) {
+//			// System.out.println(((NormalStatement) state).getInstruction().toString()+"
+//			// "+state.getNode().getMethod().getName().toString());
+//			if (state.getNode().getMethod().getName().toString().contains("getMin")) {
+//				return state;
+//			}
+//			;
+//		}
+		return null;
+	}
+
+   //构建入口点
+	public static Iterable<Entrypoint> makeEntrypoints(AnalysisScope scope, IClassHierarchy cha) {
 		if (scope == null) {
 			throw new IllegalArgumentException("scope is null");
 		}
-		return makeMainEntrypoints(scope.getApplicationLoader(), cha);
+		return makeEntrypoints(scope.getApplicationLoader(), cha);
 	}
 
-	public static Iterable<Entrypoint> makeMainEntrypoints(ClassLoaderReference clr, IClassHierarchy cha) {
+	public static Iterable<Entrypoint> makeEntrypoints(ClassLoaderReference clr, IClassHierarchy cha) {
 		if (cha == null) {
 			throw new IllegalArgumentException("cha is null");
 		}
-		final Atom mainMethod = Atom.findOrCreateAsciiAtom("contains");
-		System.out.println(mainMethod + "============");
+		final Atom mainMethod = Atom.findOrCreateAsciiAtom("main");//
+		// System.out.println(mainMethod + "============");
 		final HashSet<Entrypoint> result = HashSetFactory.make();
 		for (IClass klass : cha) {
 			if (klass.getClassLoader().getReference().equals(clr)) {
 				MethodReference mainRef = MethodReference.findOrCreate(klass.getReference(), mainMethod,
-						Descriptor.findOrCreateUTF8("(Ljava/lang/Object;)Z"));
+						Descriptor.findOrCreateUTF8("([Ljava/lang/String;)V"));
 				System.out.println(mainRef + "============");
 				IMethod m = klass.getMethod(mainRef.getSelector());
-				// System.out.println(m.getName());
+
 				if (m != null) {
 					result.add(new DefaultEntrypoint(m, cha));
 				}
@@ -270,14 +298,16 @@ public class tt {
 		// 获得一个文件
 		File exFile = new FileProvider().getFile("Java60RegressionExclusions.txt");
 		// 将分析域存到文件中
-		AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope("D:\\work\\Java\\mix\\list", exFile);
+		AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope("D:\\work\\Java\\mix\\list", exFile);//分析的路径，文件夹或jar包
 		// 构建ClassHierarchy，相当与类的一个层级结构
 		ClassHierarchy cha = ClassHierarchyFactory.make(scope); // 循环遍历每一个类
 
 		// 构建入口点
-		// Iterable<Entrypoint> entrypoints = Util.makeMainEntrypoints(scope,
-		// cha);//Util类中以main方法为入口点
-		Iterable<Entrypoint> entrypoints = makeMainEntrypoints(scope, cha);// 在本类中自己定义的以某个方法为入口点
+		Iterable<Entrypoint> entrypoints = Util.makeMainEntrypoints(scope, cha);// Util类中以main方法为入口点
+
+		// 在本类中自己定义的以某个方法为入口点
+		// Iterable<Entrypoint> entrypoints = makeEntrypoints(scope, cha);
+		// Entrypoint test
 		// System.out.println(scope.getApplicationLoader().getName());
 //		for (Entrypoint E : options.getEntrypoints()) {
 //		System.out.println("Entrypoint: " + E);
@@ -294,37 +324,53 @@ public class tt {
 		final PointerAnalysis<InstanceKey> pa = builder.getPointerAnalysis();
 		SDG<?> sdg = new SDG<>(cg, pa, modRef, DataDependenceOptions.FULL, ControlDependenceOptions.FULL, null);
 
-		// CGNode n =cg.getNode(8);
-
 		// 打印CG和SDG
 		// print(cg);
 		// System.out.println("-------------------------");
-		 printSDG(sdg);
-
+		printSDG(sdg, "linkFirst");
+		// printSDG(sdg);
 		// System.out.println(getMethodLine(findMethod(cg, "getMin", "Lpaixu/w")));
 
 		// find the seed statement. The seed statement in this example is the first
 		// instance of calling a indexOf() function in the contains function.
-		//CGNode n = findMethod(cg, "contains", "Llist/LinkedList");
-		//Statement statement = findCallTo(n, "indexOf");
+		// CGNode n = findMethod(cg, "contains", "Llist/LinkedList");
+		// Statement state = findCallTo(n, "indexOf");
 		// 自动导入包即可，slicer还有很多方法，如反向切片，上下文敏感等\
+		Statement state = null;
+		Collection<Statement> slice = null;
+		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
+			state = it.next();
+			String kind = "call";// 函数名和类名比较
+			state = getStatement(state, "linkFirst", 2, kind);
+			if (state != null) {
+				System.err.println("Statement: " + state);
+				if (kind.equals("call")) {
+					slice = Slicer.computeForwardSlice(sdg, state);
+				} else {
+					ThinSlicer ts = new ThinSlicer(cg, pa);
+					slice = ts.computeBackwardThinSlice(state);
+					slice = Slicer.computeBackwardSlice(sdg, state);
+				}
 
-		// System.err.println("Statement: " + statement);
+				break;
+			}
+		}
 
 		// 普通slicer
-		 //Collection<Statement> slice = Slicer.computeForwardSlice(sdg, statement);
+		// Collection<Statement> slice = Slicer.computeForwardSlice(sdg, state);
 		// 如果要使用thin Slicer
-		//ThinSlicer ts = new ThinSlicer(cg, pa);
-		//Collection<Statement> slice = ts.computeBackwardThinSlice(statement);
+		// ThinSlicer ts = new ThinSlicer(cg, pa);
+		// Collection<Statement> slice = ts.computeBackwardThinSlice(state);
 
 		// 遍历切片产生的statement
-//		for (Statement s : slice) {
-//			if (s.getKind() == Statement.Kind.NORMAL) {
-//				//System.out.println(i++);
-//				// 输出信息
-//				printState(s);
-//			}
-//		}
+		System.out.println();
+		for (Statement s : slice) {
+			if (s.getKind() == Statement.Kind.NORMAL) {
+				// 输出信息
+				printState(s);
+			}
+
+		}
 
 		// 循环输出类名和方法名
 		// 输出实例：

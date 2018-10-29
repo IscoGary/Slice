@@ -2,11 +2,11 @@
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/slicerTest/dependency/com.ibm.wala.cast.java-1.5.0.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/slicerTest/dependency/com.ibm.wala.cast-1.5.0.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/slicerTest/dependency/com.ibm.wala.core-1.5.0.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/slicerTest/dependency/com.ibm.wala.shrike-1.5.0.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/slicerTest/dependency/com.ibm.wala.util-1.5.0.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/slicerTest/dependency/commons-io-2.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.cast.java-1.5.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.cast-1.5.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.core-1.5.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.shrike-1.5.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.util-1.5.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/commons-io-2.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
