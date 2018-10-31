@@ -8,5 +8,9 @@
 	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.shrike-1.5.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.util-1.5.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/commons-io-2.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/com.ibm.wala.dalvik-1.5.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/slicerTest/dependency/animal-sniffer-annotations-1.14.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

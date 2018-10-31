@@ -20,6 +20,7 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.CallGraphBuilder;
 import com.ibm.wala.ipa.callgraph.Entrypoint;
+import com.ibm.wala.ipa.callgraph.impl.AllApplicationEntrypoints;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
@@ -60,15 +61,15 @@ public class test {
 		for (Iterator<? extends CGNode> it = cg.iterator(); it.hasNext();) {
 
 			CGNode n = it.next(); // 函数名和类名比较
-			System.out.println("method:  " + n.getMethod().getName() + "    class:  "
-					+ n.getMethod().getDeclaringClass().getName().toString());
+//			System.out.println("method:  " + n.getMethod().getName() + "    class:  "
+//					+ n.getMethod().getDeclaringClass().getName().toString());
 			System.err.println(n);
 
 		}
 
 	}
 
-	//打印特定方法在sdg中的statement
+	// 打印特定方法在sdg中的statement
 	public static void printSDG(SDG<?> sdg, String name) {
 		int i = 0;
 		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
@@ -130,8 +131,8 @@ public class test {
 			System.out.println("statement:  " + state.toString());
 			if (state.getKind() == Statement.Kind.NORMAL)
 				System.out.println("----------" + i + ((NormalStatement) state).getInstruction().toString());
-			if (state.getKind() == Statement.Kind.PARAM_CALLEE)
-				System.out.println("----------" + i + ((ParamCallee) state).getValueNumber());
+//			if (state.getKind() == Statement.Kind.PARAM_CALLEE)
+//				System.out.println("----------" + i + ((ParamCallee) state).getValueNumber());
 			System.out.println();
 			// System.err.println(n);
 
@@ -217,7 +218,7 @@ public class test {
 				}
 			}
 		}
-		
+
 	}
 
 	// 通过调用图节点获取某个方法所在行
@@ -236,7 +237,7 @@ public class test {
 		return sourceLineNum;
 	}
 
-	//通过cgnode信息找到目标statement，未实现通用方法
+	// 通过cgnode信息找到目标statement，未实现通用方法
 	public static Statement getStatement(Statement state, String method, int value, String kind) {
 		if (state.getKind() == Statement.Kind.NORMAL && kind.equals("return")
 				&& state.getNode().getMethod().getName().toString().equals(method)) {
@@ -245,9 +246,22 @@ public class test {
 			}
 			;
 		}
+		if (state.getKind() == Statement.Kind.NORMAL && kind.equals("line")
+				&& state.getNode().getMethod().getName().toString().equals(method)) {
+			if (((NormalStatement) state).getInstruction().toString().contains("putfield 1.")) {
+				return state;
+			}
+			;
+		}
 		if (state.getKind() == Statement.Kind.PARAM_CALLEE && kind.equals("call")) {
 			if (((ParamCallee) state).getValueNumber() == value
 					&& state.getNode().getMethod().getName().toString().equals(method)) {
+				return state;
+			}
+			;
+		}
+		if (state.getKind() == Statement.Kind.PARAM_CALLER && kind.equals("caller")) {
+			if (state.getNode().getMethod().getName().toString().equals(method)) {
 				return state;
 			}
 			;
@@ -263,7 +277,7 @@ public class test {
 		return null;
 	}
 
-   //构建入口点
+	// 构建入口点
 	public static Iterable<Entrypoint> makeEntrypoints(AnalysisScope scope, IClassHierarchy cha) {
 		if (scope == null) {
 			throw new IllegalArgumentException("scope is null");
@@ -292,43 +306,67 @@ public class test {
 		}
 		return result::iterator;
 	}
+	public static Iterable<Entrypoint> makeEntrypoints(Iterable<Entrypoint> entrypoints) {
+		final HashSet<Entrypoint> result = HashSetFactory.make();
+
+		for (Entrypoint E : entrypoints) {
+			if (E.getMethod().getName().toString().equals("linkBefore")) {
+				System.out.println("Entrypoint: " + E);
+				result.add(E);
+			}
+		}
+		return result::iterator;
+	}
 
 	public static void main(String args[]) throws IOException, ClassHierarchyException, IllegalArgumentException,
 			InvalidClassFileException, CancelException {
 		// 获得一个文件
 		File exFile = new FileProvider().getFile("Java60RegressionExclusions.txt");
 		// 将分析域存到文件中
-		AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope("D:\\work\\Java\\mix\\list", exFile);//分析的路径，文件夹或jar包
+		AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope("D:\\work\\Java\\mix\\list", exFile);// 分析的路径，文件夹或jar包
 		// 构建ClassHierarchy，相当与类的一个层级结构
 		ClassHierarchy cha = ClassHierarchyFactory.make(scope); // 循环遍历每一个类
 
 		// 构建入口点
-		Iterable<Entrypoint> entrypoints = Util.makeMainEntrypoints(scope, cha);// Util类中以main方法为入口点
-
+		// Iterable<Entrypoint> entrypoints = Util.makeMainEntrypoints(scope, cha);//
+		// Util类中以main方法为入口点
+		Iterable<Entrypoint> entrypoints = new AllApplicationEntrypoints(scope, cha);
+		Iterable<Entrypoint> entrypoints1=makeEntrypoints(entrypoints);
 		// 在本类中自己定义的以某个方法为入口点
 		// Iterable<Entrypoint> entrypoints = makeEntrypoints(scope, cha);
 		// Entrypoint test
 		// System.out.println(scope.getApplicationLoader().getName());
-//		for (Entrypoint E : options.getEntrypoints()) {
-//		System.out.println("Entrypoint: " + E);
-//	}
 
+//		AnalysisOptions options = new AnalysisOptions();
+//		Iterable<? extends Entrypoint> entrypoints = DalvikCallGraphTestBase.getEntrypoints(cha);
+		// options.setEntrypoints(entrypoints);
 		AnalysisOptions options = new AnalysisOptions(scope, entrypoints);
 		options.setReflectionOptions(ReflectionOptions.NONE);
+		AnalysisOptions options1 = new AnalysisOptions(scope, entrypoints1);
+		
+//		for (Entrypoint E : options.getEntrypoints()) {
+//
+//			if (E.getMethod().getName().toString().equals("linkFirst")) {
+//				System.out.println("Entrypoint: " + E);
+//				options1 = new AnalysisOptions(scope, (Iterable<? extends Entrypoint>) E);
+//			}
+//		}
 		// build call graph
 		CallGraphBuilder<InstanceKey> builder = Util.makeVanillaZeroOneCFABuilder(Language.JAVA, options,
 				new AnalysisCacheImpl(), cha, scope);
-		CallGraph cg = builder.makeCallGraph(options, null);
+		CallGraph cg = builder.makeCallGraph(options1, null);
 		// Build sdg
 		ModRef<InstanceKey> modRef = ModRef.make();
 		final PointerAnalysis<InstanceKey> pa = builder.getPointerAnalysis();
-		SDG<?> sdg = new SDG<>(cg, pa, modRef, DataDependenceOptions.FULL, ControlDependenceOptions.FULL, null);
+		SDG<?> sdg = new SDG<>(cg, pa, modRef, DataDependenceOptions.FULL , ControlDependenceOptions.NO_INTERPROC_NO_EXCEPTION, null);
 
 		// 打印CG和SDG
-		// print(cg);
+		// System.out.println("------------------------------cg------------------------");
+		//print(cg);
 		// System.out.println("-------------------------");
-		printSDG(sdg, "linkFirst");
-		// printSDG(sdg);
+		 printSDG(sdg, "linkBefore");
+		// System.out.println("------------------------------sdg------------------------");
+		 //printSDG(sdg);
 		// System.out.println(getMethodLine(findMethod(cg, "getMin", "Lpaixu/w")));
 
 		// find the seed statement. The seed statement in this example is the first
@@ -341,10 +379,10 @@ public class test {
 		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
 			state = it.next();
 			String kind = "call";// 函数名和类名比较
-			state = getStatement(state, "linkFirst", 2, kind);
+			state = getStatement(state, "linkBefore", 3, kind);
 			if (state != null) {
 				System.err.println("Statement: " + state);
-				if (kind.equals("call")) {
+				if (kind.equals("call")||kind.equals("caller")) {
 					slice = Slicer.computeForwardSlice(sdg, state);
 				} else {
 					ThinSlicer ts = new ThinSlicer(cg, pa);
@@ -355,14 +393,14 @@ public class test {
 				break;
 			}
 		}
-
-		// 普通slicer
-		// Collection<Statement> slice = Slicer.computeForwardSlice(sdg, state);
-		// 如果要使用thin Slicer
-		// ThinSlicer ts = new ThinSlicer(cg, pa);
-		// Collection<Statement> slice = ts.computeBackwardThinSlice(state);
-
-		// 遍历切片产生的statement
+//
+//		// 普通slicer
+//		// Collection<Statement> slice = Slicer.computeForwardSlice(sdg, state);
+//		// 如果要使用thin Slicer
+//		// ThinSlicer ts = new ThinSlicer(cg, pa);
+//		// Collection<Statement> slice = ts.computeBackwardThinSlice(state);
+//
+//		// 遍历切片产生的statement
 		System.out.println();
 		for (Statement s : slice) {
 			if (s.getKind() == Statement.Kind.NORMAL) {
