@@ -141,8 +141,8 @@ public class LinkedList<E>
         first = newNode;
         if (f == null)
             last = newNode;
-        else
-            f.prev = newNode;
+        else {
+            f.prev = newNode;}
         size++;
         modCount++;
     }
