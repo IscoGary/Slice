@@ -2,18 +2,16 @@
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.core.contenttype_3.7.100.v20180817-1401.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.core.jobs_3.10.100.v20180817-1215.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.core.resources_3.13.100.v20180828-0158.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.core.runtime_3.15.0.v20180817-1401.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.equinox.common_3.10.100.v20180827-1235.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.equinox.preferences_3.7.200.v20180827-1235.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.equinox.registry_3.8.100.v20180827-1235.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.jdt.core_3.15.0.v20180905-0317.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.osgi_3.13.100.v20180827-1536.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/jdt-needed/org.eclipse.text_3.7.0.v20180822-1511.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/lib/compiler.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/lib/platform.jar"/>
-	<classpathentry kind="lib" path="D:/work/Java/workspace/description/lib/util.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/lib/util.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.core.contenttype_3.7.100.v20180817-1401.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.core.jobs_3.10.100.v20180817-1215.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.core.resources_3.13.100.v20180828-0158.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.core.runtime_3.15.0.v20180817-1401.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.equinox.common_3.10.100.v20180827-1235.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.equinox.preferences_3.7.200.v20180827-1235.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.equinox.registry_3.8.100.v20180827-1235.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.jdt.core_3.15.0.v20180905-0317.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.osgi_3.13.100.v20180827-1536.jar"/>
+	<classpathentry kind="lib" path="C:/Users/IscoGary/git/repository/description/jdt-needed/org.eclipse.text_3.7.0.v20180822-1511.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

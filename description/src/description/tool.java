@@ -11,6 +11,8 @@ import org.eclipse.jdt.core.*;
 import org.eclipse.jdt.core.dom.*;
 
 public class tool extends ASTVisitor {
+	static DemoVisitor demovisitor = new DemoVisitor();
+
 	private static String read(String filename) throws IOException {
 		File file = new File(filename);
 		byte[] b = new byte[(int) file.length()];
@@ -19,12 +21,11 @@ public class tool extends ASTVisitor {
 		return new String(b);
 	}
 
-	private static void description(Statement stmt) {
-		if (stmt == null)
+	private static void description(ASTNode an) {
+		if (an == null)
 			System.out.println("end");
 		else {
-			explain(stmt);
-			description(stmt);
+			an.accept(demovisitor);
 		}
 	}
 
@@ -59,11 +60,9 @@ public class tool extends ASTVisitor {
 			System.out.println();
 		} else if (stmt instanceof ReturnStatement) {
 			ReturnStatement rtstmt = (ReturnStatement) stmt;
-
 			System.out.println("return:" + rtstmt.getExpression());
 			System.out.println();
 		}
-
 		return stmt;
 	}
 
@@ -74,7 +73,7 @@ public class tool extends ASTVisitor {
 
 		// char[] src = "class A { void method1(int b){int a=0;if(b>0) {a=1;};}
 		// }".toCharArray();
-		String src = read("D:\\work\\Java\\workspace\\description\\src\\description\\A.java");
+		String src = read("C:\\Users\\IscoGary\\git\\repository\\description\\src\\description\\A.java");
 		parser.setSource(src.toCharArray());
 		// CompilationUnit result = (CompilationUnit) parser.createAST(null);
 		// cu.recordModifications();
@@ -91,45 +90,47 @@ public class tool extends ASTVisitor {
 			node = node.getParent();
 		}
 		System.out.println(node);
-
+		
 		// show class name  
 		List types = result.types();
 		TypeDeclaration typeDec = (TypeDeclaration) types.get(0);
-		System.out.println("className:" + typeDec.getName());
-
+		//System.out.println("className:" + typeDec.getName());
+		
 		// show methods  
 		MethodDeclaration methodDec[] = typeDec.getMethods();
-		System.out.println("Method:");
+		//System.out.println("Method:");
 		for (MethodDeclaration method : methodDec) {
 			// get method name  
 			SimpleName methodName = method.getName();
-			System.out.println("method name:" + methodName);
+			//System.out.println("method name:" + methodName);
 			// get method parameters  
 			List param = method.parameters();
-			System.out.println("method parameters:" + param);
+			//System.out.println("method parameters:" + param);
 
 			// get method return type  
 			Type returnType = method.getReturnType2();
-			System.out.println("method return type:" + returnType);
-
+			//System.out.println("method return type:" + returnType);
+			
+			
+			
 			// get method body  
 			Block body = method.getBody();
-			List statements = body.statements();// get the statements of the method body  
-			Iterator iter = statements.iterator();
+//			List statements = body.statements();// get the statements of the method body  
+//			Iterator iter = statements.iterator();
+			
+//			while (iter.hasNext()) {
+//				// get each  statement
+//				Statement stmt = (Statement) iter.next();
+//				System.out.println("===");
+//				// stmt=explain(stmt);
+////				if (stmt instanceof IfStatement)
+////					dv.visit((IfStatement)stmt);
+//				stmt.accept(dv);
+//			}
+			
 			DemoVisitor dv = new DemoVisitor();
-			while (iter.hasNext()) {
-				// get each  statement
-				Statement stmt = (Statement) iter.next();
-				System.out.println("===");
-				// stmt=explain(stmt);
-				if (stmt instanceof IfStatement)
-					dv.visit((IfStatement)stmt);
-			}
-
-			// System.out.println(ast);
-//		  Block block =  (Block) parser.createAST(null);
-//		  System.out.println(block);
-
+			body.accept(dv);
+			System.out.println(dv.getDes());
 		}
 	}
 }
