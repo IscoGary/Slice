@@ -2,9 +2,11 @@ package test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 
 import com.ibm.wala.cast.java.loader.JavaSourceLoaderImpl.ConcreteJavaMethod;
 import com.ibm.wala.classLoader.IBytecodeMethod;
@@ -25,6 +27,7 @@ import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis;
+import com.ibm.wala.ipa.callgraph.propagation.PointerKey;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
@@ -37,6 +40,7 @@ import com.ibm.wala.ipa.slicer.Slicer;
 import com.ibm.wala.ipa.slicer.Slicer.ControlDependenceOptions;
 import com.ibm.wala.ipa.slicer.Slicer.DataDependenceOptions;
 import com.ibm.wala.ipa.slicer.Statement;
+import com.ibm.wala.ipa.slicer.StatementWithInstructionIndex;
 import com.ibm.wala.ipa.slicer.thin.ThinSlicer;
 import com.ibm.wala.shrikeCT.InvalidClassFileException;
 import com.ibm.wala.ssa.IR;
@@ -248,7 +252,7 @@ public class test {
 		}
 		if (state.getKind() == Statement.Kind.NORMAL && kind.equals("line")
 				&& state.getNode().getMethod().getName().toString().equals(method)) {
-			if (((NormalStatement) state).getInstruction().toString().contains("putfield 1.")) {
+			if (((NormalStatement) state).getInstruction().toString().contains("putfield 1.< Application, Llist/LinkedList, last")) {
 				return state;
 			}
 			;
@@ -275,6 +279,51 @@ public class test {
 //			;
 //		}
 		return null;
+	}
+
+	public static ArrayList<Statement> getSameLineStatement(Statement s, SDG<?> sdg) {
+		int i = 0;
+		int stateLine = getLine(s, sdg);
+		ArrayList<Statement> as = new ArrayList<Statement>();
+		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
+			i = 0;
+			Statement state = it.next();
+			if (state.getKind() == Statement.Kind.NORMAL) { // ignore special kinds of statements
+				int bcIndex, instructionIndex = ((NormalStatement) state).getInstructionIndex();
+				try {
+					bcIndex = ((ShrikeBTMethod) state.getNode().getMethod()).getBytecodeIndex(instructionIndex);
+					try {
+						i = state.getNode().getMethod().getLineNumber(bcIndex);
+					} catch (Exception e) {
+					}
+				} catch (Exception e) {
+					i = 1;
+				}
+			}
+			if (i == stateLine && !(s.equals(state)))
+				as.add(state);
+		}
+
+		return as;
+	}
+
+	public static int getLine(Statement state, SDG<?> sdg) {
+		int i = 0;
+			i = 0;
+			if (state.getKind() == Statement.Kind.NORMAL) { // ignore special kinds of statements
+				int bcIndex, instructionIndex = ((NormalStatement) state).getInstructionIndex();
+				try {
+					bcIndex = ((ShrikeBTMethod) state.getNode().getMethod()).getBytecodeIndex(instructionIndex);
+					try {
+						i = state.getNode().getMethod().getLineNumber(bcIndex);
+					} catch (Exception e) {
+					}
+				} catch (Exception e) {
+					i = 1;
+				}
+			}
+		
+		return i;
 	}
 
 	// 构建入口点
@@ -306,16 +355,69 @@ public class test {
 		}
 		return result::iterator;
 	}
+
 	public static Iterable<Entrypoint> makeEntrypoints(Iterable<Entrypoint> entrypoints) {
 		final HashSet<Entrypoint> result = HashSetFactory.make();
 
 		for (Entrypoint E : entrypoints) {
-			if (E.getMethod().getName().toString().equals("linkBefore")) {
+			if (E.getMethod().getName().toString().equals("linkFirst")) {
 				System.out.println("Entrypoint: " + E);
 				result.add(E);
 			}
 		}
 		return result::iterator;
+	}
+
+	public static void sliceCallStatement(String method, int callValue, SDG<?> sdg, CallGraph cg,
+			PointerAnalysis<InstanceKey> pa) throws IllegalArgumentException, CancelException {
+		printSDG(sdg, method);
+		Statement state = null;
+		Collection<Statement> slice = null,sameLineState=null;
+		ArrayList<Statement> as=null;
+		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
+			state = it.next();
+			String kind = "line";// 函数名和类名比较
+			state = getStatement(state, method, callValue, kind);
+			if (state != null) {
+				System.err.println("Statement: " + state);
+				if (kind.equals("call") || kind.equals("caller") || kind.equals("line")) {
+					slice = Slicer.computeBackwardSlice(sdg, state);
+				} else {
+					//ThinSlicer ts = new ThinSlicer(cg, pa);
+					//slice = ts.computeBackwardThinSlice(state);
+					slice = Slicer.computeBackwardSlice(sdg, state);
+				}
+				break;
+			}
+		}
+
+		// 遍历切片产生的statement
+		System.out.println();
+		for (Statement s : slice) {
+			if (s.getKind() == Statement.Kind.NORMAL) {
+				printState(s);
+			}
+		}
+//		for (Statement s : slice) {
+//			as=getSameLineStatement(s,sdg);
+//			if (as.size()!=0) {
+//				sameLineState=sliceSameLineStatement(as.get(0),sdg);
+//				break;
+//			}
+//		}
+//		for (Statement s : sameLineState) {
+//			if (s.getKind() == Statement.Kind.NORMAL) {
+//				printState(s);
+//			}
+//		}
+	}
+
+	public static Collection<Statement> sliceSameLineStatement(Statement state, SDG<?> sdg)
+			throws IllegalArgumentException, CancelException {
+		Collection<Statement> slice = null;
+		slice = Slicer.computeForwardSlice(sdg, state);
+
+		return slice;
 	}
 
 	public static void main(String args[]) throws IOException, ClassHierarchyException, IllegalArgumentException,
@@ -331,7 +433,7 @@ public class test {
 		// Iterable<Entrypoint> entrypoints = Util.makeMainEntrypoints(scope, cha);//
 		// Util类中以main方法为入口点
 		Iterable<Entrypoint> entrypoints = new AllApplicationEntrypoints(scope, cha);
-		Iterable<Entrypoint> entrypoints1=makeEntrypoints(entrypoints);
+		Iterable<Entrypoint> entrypoints1 = makeEntrypoints(entrypoints);
 		// 在本类中自己定义的以某个方法为入口点
 		// Iterable<Entrypoint> entrypoints = makeEntrypoints(scope, cha);
 		// Entrypoint test
@@ -341,9 +443,9 @@ public class test {
 //		Iterable<? extends Entrypoint> entrypoints = DalvikCallGraphTestBase.getEntrypoints(cha);
 		// options.setEntrypoints(entrypoints);
 		AnalysisOptions options = new AnalysisOptions(scope, entrypoints);
-		options.setReflectionOptions(ReflectionOptions.NONE);
+		options.setReflectionOptions(ReflectionOptions.FULL);
 		AnalysisOptions options1 = new AnalysisOptions(scope, entrypoints1);
-		
+		options1.setReflectionOptions(ReflectionOptions.FULL);
 //		for (Entrypoint E : options.getEntrypoints()) {
 //
 //			if (E.getMethod().getName().toString().equals("linkFirst")) {
@@ -352,21 +454,34 @@ public class test {
 //			}
 //		}
 		// build call graph
-		CallGraphBuilder<InstanceKey> builder = Util.makeVanillaZeroOneCFABuilder(Language.JAVA, options,
-				new AnalysisCacheImpl(), cha, scope);
+//		CallGraphBuilder<InstanceKey> builder = Util.makeVanillaZeroOneCFABuilder(Language.JAVA, options,
+//				new AnalysisCacheImpl(), cha, scope);
+		CallGraphBuilder<InstanceKey> builder = Util.makeZeroCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(),
+				cha, scope);// okokokokok
+		// CallGraphBuilder<InstanceKey> builder =
+		// Util.makeVanillaZeroOneContainerCFABuilder(options,new AnalysisCacheImpl(),
+		// cha, scope);
+
 		CallGraph cg = builder.makeCallGraph(options1, null);
 		// Build sdg
 		ModRef<InstanceKey> modRef = ModRef.make();
 		final PointerAnalysis<InstanceKey> pa = builder.getPointerAnalysis();
-		SDG<?> sdg = new SDG<>(cg, pa, modRef, DataDependenceOptions.FULL , ControlDependenceOptions.NO_INTERPROC_NO_EXCEPTION, null);
+
+//		for (PointerKey E : pa.getPointerKeys()) {
+//			
+//		System.out.println(E);
+//					}
+		SDG<?> sdg = new SDG<>(cg, pa, modRef, DataDependenceOptions.FULL,
+				ControlDependenceOptions.NO_EXCEPTIONAL_EDGES, null);
 
 		// 打印CG和SDG
 		// System.out.println("------------------------------cg------------------------");
-		//print(cg);
+		// print(cg);
 		// System.out.println("-------------------------");
-		 printSDG(sdg, "linkBefore");
+
 		// System.out.println("------------------------------sdg------------------------");
-		 //printSDG(sdg);
+		// printSDG(sdg);
+
 		// System.out.println(getMethodLine(findMethod(cg, "getMin", "Lpaixu/w")));
 
 		// find the seed statement. The seed statement in this example is the first
@@ -374,42 +489,11 @@ public class test {
 		// CGNode n = findMethod(cg, "contains", "Llist/LinkedList");
 		// Statement state = findCallTo(n, "indexOf");
 		// 自动导入包即可，slicer还有很多方法，如反向切片，上下文敏感等\
-		Statement state = null;
-		Collection<Statement> slice = null;
-		for (Iterator<Statement> it = sdg.iterator(); it.hasNext();) {
-			state = it.next();
-			String kind = "call";// 函数名和类名比较
-			state = getStatement(state, "linkBefore", 3, kind);
-			if (state != null) {
-				System.err.println("Statement: " + state);
-				if (kind.equals("call")||kind.equals("caller")) {
-					slice = Slicer.computeForwardSlice(sdg, state);
-				} else {
-					ThinSlicer ts = new ThinSlicer(cg, pa);
-					slice = ts.computeBackwardThinSlice(state);
-					slice = Slicer.computeBackwardSlice(sdg, state);
-				}
 
-				break;
-			}
-		}
-//
-//		// 普通slicer
-//		// Collection<Statement> slice = Slicer.computeForwardSlice(sdg, state);
-//		// 如果要使用thin Slicer
-//		// ThinSlicer ts = new ThinSlicer(cg, pa);
-//		// Collection<Statement> slice = ts.computeBackwardThinSlice(state);
-//
-//		// 遍历切片产生的statement
-		System.out.println();
-		for (Statement s : slice) {
-			if (s.getKind() == Statement.Kind.NORMAL) {
-				// 输出信息
-				printState(s);
-			}
+		sliceCallStatement("linkFirst", 2, sdg, cg, pa);
+		//
 
-		}
-
+		// --------------------------------------------------------------------------------------------------
 		// 循环输出类名和方法名
 		// 输出实例：
 		/*
